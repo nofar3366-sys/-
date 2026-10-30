@@ -1,0 +1,16 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}כניסה{% endblock %}
+{% block content %}
+<section class="login">
+  <span class="wordmark wordmark-lg" dir="ltr"><span class="wordmark-main">NOFAI</span><span class="wordmark-script">studio</span></span>
+  <form method="post" class="card stack" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h1>כניסה לניהול</h1>
+    <label for="username">שם משתמש</label>
+    <input id="username" name="username" dir="ltr" autocomplete="username" required autofocus>
+    <label for="password">סיסמה</label>
+    <input id="password" name="password" type="password" dir="ltr" autocomplete="current-password" required>
+    <button type="submit" class="btn btn-primary">כניסה</button>
+  </form>
+</section>
+{% endblock %}

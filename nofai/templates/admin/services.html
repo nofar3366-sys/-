@@ -1,0 +1,50 @@
+{% extends "admin/base_admin.html" %}
+{% from "admin/_macros.html" import field_error, invalid, move_buttons, delete_button %}
+{% block title %}שירותים{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>שירותים</h1>
+    <p class="muted">מוצגים בעמוד הבית, בעמוד "מי אני" ובטופס יצירת הקשר.</p>
+  </div>
+</header>
+
+{% macro service_fields(s=None, f={}, e={}) %}
+  <div class="two">
+    <input name="title_he" value="{{ s.title_he if s else (f.title_he or '') }}" placeholder="שם השירות בעברית" aria-label="שם בעברית" maxlength="120" {{ invalid(e, 'title_he') }}>
+    <input name="title_en" value="{{ s.title_en if s else (f.title_en or '') }}" placeholder="Service name in English" dir="ltr" aria-label="שם באנגלית" maxlength="120" {{ invalid(e, 'title_en') }}>
+    <textarea name="description_he" rows="2" placeholder="תיאור קצר בעברית" aria-label="תיאור בעברית" maxlength="600">{{ s.description_he if s and s.description_he else (f.description_he or '') }}</textarea>
+    <textarea name="description_en" rows="2" placeholder="Short description in English" dir="ltr" aria-label="תיאור באנגלית" maxlength="600">{{ s.description_en if s and s.description_en else (f.description_en or '') }}</textarea>
+  </div>
+{% endmacro %}
+
+<form method="post" class="card stack" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <h2>שירות חדש</h2>
+  {{ service_fields(None, form, errors) }}
+  {{ field_error(errors, 'title_he') }}{{ field_error(errors, 'title_en') }}
+  <div><button type="submit" class="btn btn-primary">+ הוספה</button></div>
+</form>
+
+{% for s in services %}
+  <section class="card service-edit {{ 'is-draft' if not s.is_active }}">
+    <form method="post" action="{{ url_for('admin.service_update', service_id=s.id) }}" class="stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {{ service_fields(s) }}
+      <div class="row-actions">
+        <button type="submit" class="btn btn-sm">שמירה</button>
+      </div>
+    </form>
+    <div class="row-actions">
+      <form method="post" action="{{ url_for('admin.service_toggle', service_id=s.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="switch" role="switch" aria-checked="{{ 'true' if s.is_active else 'false' }}" aria-label="הצגת השירות באתר">
+          <span class="switch-track"><span class="switch-thumb"></span></span> {{ 'מוצג באתר' if s.is_active else 'מוסתר' }}
+        </button>
+      </form>
+      {{ move_buttons('admin.service_move', 'service_id', s.id, loop.first, loop.last) }}
+      {{ delete_button('admin.service_delete', 'service_id', s.id, 'למחוק את השירות "' ~ s.title_he ~ '"?') }}
+    </div>
+  </section>
+{% endfor %}
+{% endblock %}

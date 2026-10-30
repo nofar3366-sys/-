@@ -1,0 +1,41 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}פניות{% endblock %}
+{% block content %}
+<header class="page-head"><h1>פניות</h1></header>
+
+<nav class="tabs" aria-label="סינון לפי סטטוס">
+  <a href="{{ url_for('admin.inquiries') }}" {% if not status %}aria-current="page"{% endif %}>הכל <span class="count">{{ counts.values() | sum }}</span></a>
+  {% for s in statuses %}
+    <a href="{{ url_for('admin.inquiries', status=s) }}" {% if status == s %}aria-current="page"{% endif %}>{{ labels[s] }} <span class="count">{{ counts.get(s, 0) }}</span></a>
+  {% endfor %}
+</nav>
+
+{% if inquiries %}
+  <div class="card flush">
+    <table class="table">
+      <thead><tr><th scope="col">שם</th><th scope="col">מותג</th><th scope="col">שירות</th><th scope="col">התקבלה</th><th scope="col">סטטוס</th></tr></thead>
+      <tbody>
+        {% for q in inquiries %}
+          <tr class="{{ 'is-new' if q.status == 'new' }}">
+            <td data-label="שם"><a href="{{ url_for('admin.inquiry_detail', inquiry_id=q.id) }}" class="strong">{{ q.name }}</a>
+              <div class="muted small" dir="ltr">{{ q.email }}</div></td>
+            <td data-label="מותג">{{ q.company or '—' }}</td>
+            <td data-label="שירות">{{ q.service or '—' }}</td>
+            <td data-label="התקבלה" class="nowrap">{{ q.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td data-label="סטטוס"><span class="badge badge-{{ q.status }}">{{ q.status_label }}</span></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if pagination.pages > 1 %}
+    <nav class="pagination" aria-label="עמודים">
+      {% if pagination.has_prev %}<a href="{{ url_for('admin.inquiries', status=status or None, page=pagination.prev_num) }}">→ הקודם</a>{% endif %}
+      <span>עמוד {{ pagination.page }} מתוך {{ pagination.pages }}</span>
+      {% if pagination.has_next %}<a href="{{ url_for('admin.inquiries', status=status or None, page=pagination.next_num) }}">הבא ←</a>{% endif %}
+    </nav>
+  {% endif %}
+{% else %}
+  <div class="empty">אין פניות{% if status %} בסטטוס הזה{% endif %}. פניות מטופס יצירת הקשר באתר יופיעו כאן.</div>
+{% endif %}
+{% endblock %}
