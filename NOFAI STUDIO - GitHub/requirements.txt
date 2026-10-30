@@ -1,0 +1,14 @@
+Flask==3.0.3
+Flask-SQLAlchemy==3.1.1
+Flask-Login==0.6.3
+Flask-WTF==1.2.1
+SQLAlchemy==2.0.53
+Werkzeug==3.1.8
+Pillow>=11,<13                               # image resizing / dimensions for uploads
+
+# Tests
+pytest==8.2.2
+
+# Production only (when the site is hosted)
+gunicorn==22.0.0; sys_platform != "win32"   # WSGI server, Linux only
+psycopg[binary]>=3.2,<4                     # PostgreSQL driver (DATABASE_URL=postgres://...)

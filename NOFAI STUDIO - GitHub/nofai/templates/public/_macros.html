@@ -1,0 +1,56 @@
+{# Gallery tile: one project, opens the lightbox with all of its images.
+   The image list travels as JSON in a data attribute (tojson escapes quotes and
+   angle brackets, so it's safe inside a single-quoted attribute; no inline script needed). #}
+{% macro project_tile(project, cls='', speed='0') %}
+  {% set cover = project.cover %}
+  {% set gallery = {
+       "title": project.tr('title'),
+       "client": project.client or '',
+       "year": project.year or '',
+       "description": project.tr('description'),
+       "images": project.images | map('image_payload') | list,
+     } %}
+  <figure class="tile {{ cls }} tile-{{ cover.orientation }} reveal" data-speed="{{ speed }}">
+    <button type="button" class="tile-button" data-lightbox data-cursor-hover
+            data-gallery='{{ gallery | tojson | forceescape }}'
+            aria-label="{{ t('work.open') }}: {{ project.tr('title') }} ({{ project.images | length }} {{ t('work.images') }})">
+      <span class="tile-frame">
+        <img src="{{ img(cover.filename) }}" alt="{{ cover.tr('alt') or project.tr('title') }}"
+             width="{{ cover.width }}" height="{{ cover.height }}" loading="lazy" decoding="async">
+      </span>
+    </button>
+    <figcaption class="tile-caption">
+      <span class="tile-title">{{ project.tr('title') }}</span>
+      {% if project.client %}<span class="tile-client">{{ project.client }}</span>{% endif %}
+    </figcaption>
+  </figure>
+{% endmacro %}
+
+{# Lightbox dialog, rendered once per page that has tiles #}
+{% macro lightbox() %}
+<dialog class="lightbox" data-lightbox-dialog aria-label="{{ t('work.title') }}"
+        data-label-of="{{ t('lb.of') }}">
+  <div class="lb-stage">
+    <img class="lb-image" alt="" data-lb-image>
+  </div>
+  <div class="lb-meta">
+    <div class="lb-text">
+      <p class="lb-title" data-lb-title></p>
+      <p class="lb-sub" data-lb-sub></p>
+      <p class="lb-desc" data-lb-desc></p>
+    </div>
+    <div class="lb-controls">
+      <button type="button" class="lb-btn" data-lb-prev aria-label="{{ t('lb.prev') }}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <span class="lb-count" data-lb-count aria-live="polite"></span>
+      <button type="button" class="lb-btn" data-lb-next aria-label="{{ t('lb.next') }}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </div>
+  <button type="button" class="lb-close" data-lb-close aria-label="{{ t('lb.close') }}">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19"/></svg>
+  </button>
+</dialog>
+{% endmacro %}

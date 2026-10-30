@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "public/_macros.html" import project_tile, lightbox %}
+
+{% block title %}{{ t('work.title') }} · NOFAI Studio{% endblock %}
+{% block body_class %}page-work{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="wrap">
+    <h1 class="page-title page-title-xl reveal">{{ t('work.title') }}</h1>
+    {% if categories|length > 1 %}
+      <nav class="filters reveal" aria-label="{{ t('work.filter') }}">
+        <a href="{{ url_for('public.work') }}" class="filter" {% if not active %}aria-current="page"{% endif %}>{{ t('work.all') }}</a>
+        {% for cat in categories %}
+          <a href="{{ url_for('public.work', category=cat.slug) }}" class="filter"
+             {% if active == cat.slug %}aria-current="page"{% endif %}>{{ cat.tr('name') }}</a>
+        {% endfor %}
+      </nav>
+    {% endif %}
+  </div>
+</section>
+
+<section class="section section-tight">
+  <div class="wrap">
+    {% if projects %}
+      <div class="masonry">
+        {% set speeds = ['0', '0.08', '-0.05', '0.05', '-0.08', '0.03'] %}
+        {% for project in projects %}{{ project_tile(project, '', speeds[loop.index0 % 6]) }}{% endfor %}
+      </div>
+    {% else %}
+      <p class="empty reveal">{{ t('work.empty') }}</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block overlays %}{{ lightbox() }}{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/lightbox.js') }}"></script>{% endblock %}

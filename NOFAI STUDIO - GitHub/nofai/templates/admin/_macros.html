@@ -1,0 +1,25 @@
+{% macro field_error(errors, name) %}
+  {% if errors.get(name) %}<p class="field-error" id="err-{{ name }}">{{ errors[name] }}</p>{% endif %}
+{% endmacro %}
+
+{% macro invalid(errors, name) %}{% if errors.get(name) %}aria-invalid="true" aria-describedby="err-{{ name }}"{% endif %}{% endmacro %}
+
+{# Up / down reorder buttons (plain forms: work without JavaScript) #}
+{% macro move_buttons(endpoint, id_name, id_value, first, last) %}
+  <span class="move">
+    {% for direction, symbol, label, disabled in [('up', '↑', 'למעלה', first), ('down', '↓', 'למטה', last)] %}
+      <form method="post" action="{{ url_for(endpoint, **{id_name: id_value}) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="direction" value="{{ direction }}">
+        <button type="submit" class="icon-btn" aria-label="הזזה {{ label }}" {% if disabled %}disabled{% endif %}>{{ symbol }}</button>
+      </form>
+    {% endfor %}
+  </span>
+{% endmacro %}
+
+{% macro delete_button(endpoint, id_name, id_value, confirm_text, label='מחיקה') %}
+  <form method="post" action="{{ url_for(endpoint, **{id_name: id_value}) }}" data-confirm="{{ confirm_text }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn-text danger">{{ label }}</button>
+  </form>
+{% endmacro %}

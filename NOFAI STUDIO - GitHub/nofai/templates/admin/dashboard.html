@@ -1,0 +1,35 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}ראשי{% endblock %}
+{% block content %}
+<header class="page-head">
+  <h1>שלום, {{ current_user.username }}</h1>
+  <a href="{{ url_for('admin.project_new') }}" class="btn btn-primary">+ פרויקט חדש</a>
+</header>
+
+<div class="stats">
+  <a class="stat" href="{{ url_for('admin.inquiries', status='new') }}"><span class="stat-num">{{ new_count }}</span><span>פניות חדשות</span></a>
+  <a class="stat" href="{{ url_for('admin.projects') }}"><span class="stat-num">{{ published_count }}<small>/{{ project_count }}</small></span><span>פרויקטים מפורסמים</span></a>
+  <a class="stat" href="{{ url_for('admin.projects') }}"><span class="stat-num">{{ image_count }}</span><span>תמונות</span></a>
+</div>
+
+<section class="card">
+  <div class="card-head">
+    <h2>פניות חדשות</h2>
+    <a href="{{ url_for('admin.inquiries') }}" class="link">לכל הפניות ←</a>
+  </div>
+  {% if new_inquiries %}
+    <ul class="rows">
+      {% for q in new_inquiries %}
+        <li class="row">
+          <a href="{{ url_for('admin.inquiry_detail', inquiry_id=q.id) }}" class="strong">{{ q.name }}</a>
+          <span class="muted">{{ q.company or '' }}</span>
+          <span class="muted">{{ q.service or '' }}</span>
+          <span class="muted nowrap">{{ q.created_at.strftime('%d/%m %H:%M') }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">אין פניות חדשות.</p>
+  {% endif %}
+</section>
+{% endblock %}

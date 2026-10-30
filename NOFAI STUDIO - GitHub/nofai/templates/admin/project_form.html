@@ -1,0 +1,135 @@
+{% extends "admin/base_admin.html" %}
+{% from "admin/_macros.html" import field_error, invalid, move_buttons, delete_button %}
+{% set is_new = project is none %}
+{% block title %}{{ 'פרויקט חדש' if is_new else project.title_he }}{% endblock %}
+{% block content %}
+<a href="{{ url_for('admin.projects') }}" class="back">→ חזרה לעבודות</a>
+<header class="page-head">
+  <h1>{{ 'פרויקט חדש' if is_new else project.title_he }}</h1>
+  {% if not is_new and project.is_published %}
+    <a href="{{ url_for('public.work', lang='he') }}" target="_blank" rel="noopener" class="link">צפייה בגלריה ↗</a>
+  {% endif %}
+</header>
+
+<form method="post" enctype="multipart/form-data" class="project-form" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="split">
+    <section class="card stack">
+      <h2>פרטי הפרויקט</h2>
+      <div class="two">
+        <div class="stack">
+          <label for="title_he">כותרת בעברית</label>
+          <input id="title_he" name="title_he" value="{{ form.title_he or '' }}" maxlength="160" {{ invalid(errors, 'title_he') }}>
+          {{ field_error(errors, 'title_he') }}
+        </div>
+        <div class="stack">
+          <label for="title_en">כותרת באנגלית</label>
+          <input id="title_en" name="title_en" dir="ltr" value="{{ form.title_en or '' }}" maxlength="160" {{ invalid(errors, 'title_en') }}>
+          {{ field_error(errors, 'title_en') }}
+        </div>
+      </div>
+      <p class="hint">מספיק למלא שפה אחת; היא תוצג בשתי השפות עד שתוסיפי תרגום.</p>
+
+      <div class="two">
+        <div class="stack">
+          <label for="description_he">תיאור בעברית</label>
+          <textarea id="description_he" name="description_he" rows="4">{{ form.description_he or '' }}</textarea>
+        </div>
+        <div class="stack">
+          <label for="description_en">תיאור באנגלית</label>
+          <textarea id="description_en" name="description_en" dir="ltr" rows="4">{{ form.description_en or '' }}</textarea>
+        </div>
+      </div>
+      <p class="hint">התיאור מופיע מתחת לתמונות בחלון הגלריה.</p>
+    </section>
+
+    <aside class="card stack">
+      <h2>הגדרות</h2>
+      <label for="client">לקוח / מותג</label>
+      <input id="client" name="client" value="{{ form.client or '' }}" maxlength="120" {{ invalid(errors, 'client') }}>
+      {{ field_error(errors, 'client') }}
+
+      <label for="year">שנה</label>
+      <input id="year" name="year" inputmode="numeric" dir="ltr" value="{{ form.year or '' }}" maxlength="4" {{ invalid(errors, 'year') }}>
+      {{ field_error(errors, 'year') }}
+
+      <label for="category_id">קטגוריה</label>
+      <select id="category_id" name="category_id">
+        <option value="">— ללא —</option>
+        {% for c in categories %}<option value="{{ c.id }}" {% if form.category_id == c.id|string %}selected{% endif %}>{{ c.name_he }}</option>{% endfor %}
+      </select>
+      {{ field_error(errors, 'category_id') }}
+
+      <label class="check"><input type="checkbox" name="is_published" value="1" {% if form.is_published %}checked{% endif %}> מפורסם באתר</label>
+      <label class="check"><input type="checkbox" name="is_featured" value="1" {% if form.is_featured %}checked{% endif %}> ★ להציג בעמוד הבית</label>
+
+      <details class="advanced" {% if errors.slug %}open{% endif %}>
+        <summary>מתקדם</summary>
+        <label for="slug">מזהה בכתובת (באנגלית)</label>
+        <input id="slug" name="slug" dir="ltr" value="{{ form.slug or '' }}" placeholder="נוצר אוטומטית מהכותרת" {{ invalid(errors, 'slug') }}>
+        {{ field_error(errors, 'slug') }}
+      </details>
+    </aside>
+  </div>
+
+  <section class="card" id="images">
+    <div class="card-head">
+      <h2>תמונות</h2>
+      <span class="muted small">JPG, PNG או WEBP, עד 15MB לתמונה. התמונות מוקטנות ונשמרות בפורמט WEBP קליל.</span>
+    </div>
+
+    <label class="dropzone" data-dropzone>
+      <input type="file" name="images" accept="image/jpeg,image/png,image/webp" multiple data-file-input>
+      <span class="dropzone-text"><strong>בחירת תמונות</strong> או גרירה לכאן</span>
+      <span class="dropzone-files muted small" data-file-list></span>
+    </label>
+    <div class="previews" data-previews></div>
+
+    {% if project and project.images %}
+      <ul class="image-grid">
+        {% for image in project.images %}
+          <li class="image-card">
+            <img src="{{ img(image.filename) }}" alt="" loading="lazy">
+            <label class="check cover-pick"><input type="radio" name="cover_id" value="{{ image.id }}" {% if image == project.cover %}checked{% endif %}> תמונת שער</label>
+            <input name="alt_he_{{ image.id }}" value="{{ image.alt_he or '' }}" placeholder="תיאור התמונה (לנגישות)" maxlength="200" aria-label="תיאור בעברית">
+            <input name="alt_en_{{ image.id }}" value="{{ image.alt_en or '' }}" placeholder="Image description" dir="ltr" maxlength="200" aria-label="תיאור באנגלית">
+            <div class="image-actions">
+              {# these buttons submit separate forms (see form="" attribute) so they don't save the main form #}
+              <button type="submit" class="icon-btn" form="move-up-{{ image.id }}" aria-label="הזזה למעלה" {% if loop.first %}disabled{% endif %}>→</button>
+              <button type="submit" class="icon-btn" form="move-down-{{ image.id }}" aria-label="הזזה למטה" {% if loop.last %}disabled{% endif %}>←</button>
+              <button type="submit" class="btn-text danger" form="delete-{{ image.id }}">מחיקה</button>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </section>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">{{ 'יצירת הפרויקט' if is_new else 'שמירה' }}</button>
+  </div>
+</form>
+
+{% if project %}
+  {# standalone forms for per-image actions, referenced by form="" above (forms can't be nested) #}
+  {% for image in project.images %}
+    {% for direction in ['up', 'down'] %}
+      <form method="post" action="{{ url_for('admin.image_move', image_id=image.id) }}" id="move-{{ direction }}-{{ image.id }}" hidden>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="direction" value="{{ direction }}">
+      </form>
+    {% endfor %}
+    <form method="post" action="{{ url_for('admin.image_delete', image_id=image.id) }}" id="delete-{{ image.id }}" hidden
+          data-confirm="למחוק את התמונה? לא ניתן לבטל.">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    </form>
+  {% endfor %}
+
+  <div class="danger-zone">
+    {{ delete_button('admin.project_delete', 'project_id', project.id,
+                     'למחוק את הפרויקט "' ~ project.title_he ~ '" ואת כל ' ~ (project.images|length) ~ ' התמונות שלו? לא ניתן לבטל.',
+                     'מחיקת הפרויקט') }}
+  </div>
+{% endif %}
+{% endblock %}

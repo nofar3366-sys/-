@@ -1,0 +1,55 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}טקסטים באתר{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>טקסטים באתר</h1>
+    <p class="muted">שדה ריק מחזיר את טקסט הטיוטה (מוצג באפור). שפה שלא מולאה מציגה את השפה השנייה.</p>
+  </div>
+</header>
+
+<form method="post" enctype="multipart/form-data" class="stack" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <section class="card stack">
+    <h2>תמונה לעמוד "מי אני"</h2>
+    <div class="portrait-field">
+      {% if about_image %}<img src="{{ img(about_image) }}" alt="התמונה הנוכחית" class="portrait-preview">{% endif %}
+      <div class="stack">
+        <input type="file" name="about_image" accept="image/jpeg,image/png,image/webp" aria-label="העלאת תמונה">
+        {% if about_image %}<label class="check"><input type="checkbox" name="remove_about_image" value="1"> הסרת התמונה (חזרה למונוגרמה)</label>{% endif %}
+        <p class="hint">מומלץ צילום אנכי (3:4). התמונה מוצגת במסגרת קשת.</p>
+      </div>
+    </div>
+  </section>
+
+  {% for group, fields in groups.items() %}
+    <section class="card stack">
+      <h2>{{ group }}</h2>
+      {% for field in fields %}
+        {% set row = stored.get(field.key) %}
+        <div class="text-field">
+          <p class="text-label">{{ field.label }}</p>
+          <div class="{{ 'two' if field.translated else '' }}">
+            {% for lang in (['he', 'en'] if field.translated else ['en']) %}
+              {% set value = row['value_' ~ lang] if row else '' %}
+              {% set placeholder = field['default_' ~ lang] %}
+              {% set name = field.key ~ '_' ~ lang %}
+              {% set aria = field.label ~ (' (' ~ ('עברית' if lang == 'he' else 'אנגלית') ~ ')' if field.translated else '') %}
+              {% if field.multiline %}
+                <textarea name="{{ name }}" rows="3" placeholder="{{ placeholder }}" aria-label="{{ aria }}" maxlength="3000"
+                          {% if lang == 'en' %}dir="ltr"{% endif %}>{{ value or '' }}</textarea>
+              {% else %}
+                <input name="{{ name }}" value="{{ value or '' }}" placeholder="{{ placeholder }}" aria-label="{{ aria }}" maxlength="3000"
+                       {% if lang == 'en' %}dir="ltr"{% endif %}>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    </section>
+  {% endfor %}
+
+  <div class="form-actions sticky"><button type="submit" class="btn btn-primary">שמירת הטקסטים</button></div>
+</form>
+{% endblock %}
