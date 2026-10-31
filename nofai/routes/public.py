@@ -53,26 +53,46 @@ def index():
     return render_template("public/index.html", featured=featured, services=_active_services())
 
 
-@public_bp.route("/about")
+# Trailing slashes everywhere: every page maps to <path>/index.html in the static
+# export (flask export), so the same URLs work on Netlify without extra redirects.
+
+@public_bp.route("/about/")
 def about():
     return render_template("public/about.html", services=_active_services())
 
 
-@public_bp.route("/work")
-def work():
+def _render_work(active_slug: str = ""):
     categories = Category.query.order_by(Category.sort_order, Category.id).all()
-    active = request.args.get("category", "")
     query = _published()
-    if active:
-        cat = next((c for c in categories if c.slug == active), None)
+    if active_slug:
+        cat = next((c for c in categories if c.slug == active_slug), None)
         if cat is None:
-            return redirect(url_for("public.work"))
+            abort(404)
         query = query.filter_by(category_id=cat.id)
     projects = [p for p in query.order_by(Project.sort_order, Project.created_at.desc()).all() if p.cover]
-    return render_template("public/work.html", projects=projects, categories=categories, active=active)
+    return render_template("public/work.html", projects=projects, categories=categories, active=active_slug)
 
 
-@public_bp.route("/contact", methods=["GET", "POST"])
+@public_bp.route("/work/")
+def work():
+    # old ?category= links still work (static files can't read query strings, hence the path form)
+    if request.args.get("category"):
+        return redirect(url_for("public.work_category", slug=request.args["category"]), 301)
+    return _render_work()
+
+
+@public_bp.route("/work/c/<slug>/")
+def work_category(slug):
+    return _render_work(slug)
+
+
+@public_bp.route("/contact/thanks/")
+def contact_thanks():
+    """Shown after a no-JavaScript submission (and the Netlify Forms success page)."""
+    return render_template("public/contact_thanks.html")
+
+
+@public_bp.route("/contact/", methods=["GET", "POST"])
 def contact():
     if request.method == "GET":
         return render_template("public/contact.html", services=_active_services())
@@ -99,8 +119,7 @@ def contact():
 
     if _wants_json():
         return jsonify(ok=True, message=t("contact.success")), 201
-    flash(t("contact.success"), "success")
-    return redirect(url_for("public.contact"))
+    return redirect(url_for("public.contact_thanks"))
 
 
 @public_bp.app_errorhandler(CSRFError)

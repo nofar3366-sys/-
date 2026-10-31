@@ -63,6 +63,10 @@ class Config:
     TRUST_PROXY = os.environ.get("TRUST_PROXY", "0") == "1"
     HSTS = False
 
+    # Set by `flask export`: templates render the Netlify (static hosting) variant
+    STATIC_EXPORT = False
+    STATIC_EXPORT_DIR = os.path.join(BASE_DIR, "dist")
+
 
 class ProductionConfig(Config):
     DEBUG = False

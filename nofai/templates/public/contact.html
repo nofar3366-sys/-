@@ -21,11 +21,20 @@
     </div>
 
     <div class="contact-form-wrap reveal">
+      {# Static export (Netlify): Netlify Forms reads name + data-netlify at deploy time and stores
+         submissions; the hidden form-name field is required for the JavaScript (fetch) submit. #}
+      {% set static = config.STATIC_EXPORT %}
       <form method="post" class="contact-form" data-contact-form novalidate
+            {% if static %}name="contact" action="{{ url_for('public.contact_thanks') }}" data-netlify="true" netlify-honeypot="website"{% endif %}
             data-msg-sending="{{ t('contact.sending') }}" data-msg-fix="{{ t('contact.fix') }}"
-            data-msg-offline="{{ t('contact.offline') }}"
+            data-msg-offline="{{ t('contact.offline') }}" data-msg-success="{{ t('contact.success') }}"
             data-err-name="{{ t('err.name') }}" data-err-email="{{ t('err.email') }}" data-err-message="{{ t('err.message') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if static %}
+          <input type="hidden" name="form-name" value="contact">
+          <input type="hidden" name="language" value="{{ lang }}">
+        {% else %}
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% endif %}
         <div class="hp" aria-hidden="true">
           <label for="f-website">Website</label>
           <input id="f-website" name="website" tabindex="-1" autocomplete="off">

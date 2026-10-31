@@ -3,6 +3,7 @@
     flask --app app seed             admin user + starter category and services (new database only)
     flask --app app seed-demo        demo projects with generated placeholder images
     flask --app app reset-password   set a new admin password
+    flask --app app export           static site for Netlify -> dist/
 """
 import io
 import random
@@ -112,6 +113,17 @@ def register_cli(app):
             db.session.add(project)
         db.session.commit()
         click.echo(f"Added {count} demo projects.")
+
+    @app.cli.command("export")
+    @click.option("--out", default=None, help="Output folder (default: dist/).")
+    def export(out):
+        """Build the static site for Netlify into dist/ (then commit & push it)."""
+        from .exporter import ExportError, export_site
+        try:
+            stats = export_site(app, out)
+        except ExportError as exc:
+            raise click.ClickException(f"Export stopped: {exc}") from exc
+        click.echo(f"Exported {stats['pages']} pages and {stats['images']} images to {stats['out_dir']}")
 
     @app.cli.command("reset-password")
     @click.option("--username", default=None)

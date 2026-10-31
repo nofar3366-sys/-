@@ -1,0 +1,7 @@
+# Netlify serves the pre-built static site. dist/ is generated on your computer with
+#   flask --app app export
+# and committed to GitHub (Netlify can't run the Flask app or reach your local database).
+# Redirects and security headers live in dist/_redirects and dist/_headers (also generated).
+[build]
+  publish = "dist"
+  command = ""

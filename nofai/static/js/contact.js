@@ -49,18 +49,32 @@
     const original = label.textContent;
     button.disabled = true;
     label.textContent = msg.msgSending;
+    const showSuccess = (text) => {
+      success.querySelector("[data-success-message]").textContent = text;
+      form.hidden = true;
+      success.hidden = false;
+      success.focus();
+    };
     try {
-      const res = await fetch(form.action || window.location.href, {
+      if (form.hasAttribute("data-netlify")) {
+        // Static site on Netlify: Netlify Forms expects a url-encoded POST to "/"
+        const res = await fetch("/", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams(new FormData(form)).toString(),
+        });
+        if (!res.ok) throw new Error(res.status);
+        showSuccess(msg.msgSuccess);
+        return;
+      }
+      const res = await fetch(window.location.href, {
         method: "POST",
         body: new FormData(form),
         headers: { Accept: "application/json", "X-CSRFToken": form.elements.csrf_token.value },
       });
       const data = await res.json();
       if (data.ok) {
-        success.querySelector("[data-success-message]").textContent = data.message;
-        form.hidden = true;
-        success.hidden = false;
-        success.focus();
+        showSuccess(data.message);
       } else {
         Object.entries(data.errors || {}).forEach(([name, text]) => setError(name, text));
         status.textContent = data.message;

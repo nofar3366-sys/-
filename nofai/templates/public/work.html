@@ -12,7 +12,7 @@
       <nav class="filters reveal" aria-label="{{ t('work.filter') }}">
         <a href="{{ url_for('public.work') }}" class="filter" {% if not active %}aria-current="page"{% endif %}>{{ t('work.all') }}</a>
         {% for cat in categories %}
-          <a href="{{ url_for('public.work', category=cat.slug) }}" class="filter"
+          <a href="{{ url_for('public.work_category', slug=cat.slug) }}" class="filter"
              {% if active == cat.slug %}aria-current="page"{% endif %}>{{ cat.tr('name') }}</a>
         {% endfor %}
       </nav>
