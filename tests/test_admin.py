@@ -130,21 +130,21 @@ def test_services_crud_and_toggle(admin_client, client):
     s = Service.query.filter_by(title_en="Retouching").one()
     admin_client.post(f"/admin/services/{s.id}/toggle")
     assert db.session.get(Service, s.id).is_active is False
-    assert "Retouching" not in client.get("/en/about").get_data(as_text=True)
+    assert "Retouching" not in client.get("/en/about/").get_data(as_text=True)
 
 
 def test_texts_save_and_reset(admin_client):
     admin_client.post("/admin/texts", data={"about_title_en": "Hey!", "about_title_he": "", "instagram_en": "nofai.new"})
     assert db.session.get(SiteText, "about_title").value_en == "Hey!"
-    assert "@nofai.new" in admin_client.get("/en/contact").get_data(as_text=True)
+    assert "@nofai.new" in admin_client.get("/en/contact/").get_data(as_text=True)
     admin_client.post("/admin/texts", data={"about_title_en": ""})   # empty = starter copy again
-    assert "Hi, I&#39;m Nofar" in admin_client.get("/en/about").get_data(as_text=True)
+    assert "Hi, I&#39;m Nofar" in admin_client.get("/en/about/").get_data(as_text=True)
 
 
 def test_about_portrait_upload_and_remove(admin_client, app):
     admin_client.post("/admin/texts", data={"about_image": (image_bytes(), "me.png")}, content_type="multipart/form-data")
     filename = db.session.get(SiteText, "about_image").value_en
-    assert filename and f"/media/{filename}" in admin_client.get("/en/about").get_data(as_text=True)
+    assert filename and f"/media/{filename}" in admin_client.get("/en/about/").get_data(as_text=True)
     admin_client.post("/admin/texts", data={"remove_about_image": "1"})
     assert db.session.get(SiteText, "about_image").value_en is None
     assert not os.path.exists(os.path.join(app.config["UPLOAD_DIR"], filename))
