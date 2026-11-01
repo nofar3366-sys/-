@@ -7,7 +7,7 @@ from flask import (Blueprint, abort, current_app, flash, redirect, render_templa
 from flask_login import current_user, login_required, login_user, logout_user
 
 from ..extensions import db, login_manager
-from ..models import Admin, Inquiry, InquiryStatus, Project, ProjectImage
+from ..models import Admin, Inquiry, InquiryStatus, Note, Project, ProjectImage
 from ..security import login_throttle
 from ..validators import DEFAULT_ADMIN_PASSWORD, validate_new_password
 
@@ -166,6 +166,10 @@ def inquiry_status(inquiry_id):
 @login_required
 def inquiry_delete(inquiry_id):
     inquiry = get_or_404(Inquiry, inquiry_id)
+    # notes that already belong to a client's history stay with the client; the rest go with the inquiry
+    Note.query.filter(Note.inquiry_id == inquiry.id, Note.client_id.isnot(None)).update(
+        {"inquiry_id": None}, synchronize_session=False)
+    db.session.expire(inquiry, ["notes"])
     db.session.delete(inquiry)
     db.session.commit()
     flash("הפנייה נמחקה", "success")

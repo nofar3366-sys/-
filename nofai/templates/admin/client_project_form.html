@@ -1,0 +1,128 @@
+{% extends "admin/base_admin.html" %}
+{% from "admin/_macros.html" import field_error, invalid %}
+{% block title %}{{ project.name if project else 'פרויקט חדש' }}{% endblock %}
+{% block content %}
+<a href="{{ url_for('admin.client_detail', client_id=client.id, tab='projects') }}" class="back">→ חזרה ללקוח {{ client.display_name }}</a>
+<header class="page-head">
+  <div>
+    <h1>{{ project.name if project else 'פרויקט חדש' }} {% if project %}<span class="badge badge-p-{{ project.status }}">{{ project.status_label }}</span>{% endif %}</h1>
+    <p class="muted">הלקוח: <a href="{{ url_for('admin.client_detail', client_id=client.id) }}" class="link">{{ client.display_name }}</a></p>
+  </div>
+  {% if project %}
+    <div class="row-actions">
+      <a href="{{ url_for('admin.pricing_new', client=client.id, project=project.id) }}" class="btn">הצעת מחיר חדשה לפרויקט</a>
+    </div>
+  {% endif %}
+</header>
+
+<div class="split">
+  <form method="post" action="{{ url_for('admin.client_project', project_id=project.id) if project else url_for('admin.client_project_new', client_id=client.id) }}" class="card" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="two">
+      <div class="stack">
+        <label for="p-name">שם הפרויקט</label>
+        <input id="p-name" name="name" value="{{ values.name }}" maxlength="160" required {{ invalid(errors, 'name') }}>
+        {{ field_error(errors, 'name') }}
+      </div>
+      <div class="stack">
+        <label for="p-service">סוג או שירות</label>
+        <input id="p-service" name="service" value="{{ values.service }}" maxlength="120" placeholder="קמפיין, דמות, תמונות מוצר..." {{ invalid(errors, 'service') }}>
+        {{ field_error(errors, 'service') }}
+      </div>
+      <div class="stack">
+        <label for="p-status">סטטוס</label>
+        <select id="p-status" name="status">
+          {% for s in statuses %}<option value="{{ s }}" {% if values.status == s %}selected{% endif %}>{{ labels[s] }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="stack">
+        <label for="p-amount">סכום מוסכם (₪, לפני מע״מ)</label>
+        <input id="p-amount" name="amount" inputmode="numeric" dir="ltr" value="{{ values.amount }}" {{ invalid(errors, 'amount') }}>
+        {{ field_error(errors, 'amount') }}
+        <p class="hint">מתמלא אוטומטית כשמשייכים הצעה מאושרת. אפשר לערוך.</p>
+      </div>
+      <div class="stack">
+        <label for="p-start">תאריך התחלה</label>
+        <input id="p-start" name="start_date" type="date" value="{{ values.start_date }}" {{ invalid(errors, 'start_date') }}>
+        {{ field_error(errors, 'start_date') }}
+      </div>
+      <div class="stack">
+        <label for="p-due">תאריך יעד</label>
+        <input id="p-due" name="due_date" type="date" value="{{ values.due_date }}" {{ invalid(errors, 'due_date') }}>
+        {{ field_error(errors, 'due_date') }}
+      </div>
+      <div class="stack">
+        <label for="p-delivered">תאריך מסירה</label>
+        <input id="p-delivered" name="delivered_date" type="date" value="{{ values.delivered_date }}" {{ invalid(errors, 'delivered_date') }}>
+        {{ field_error(errors, 'delivered_date') }}
+      </div>
+    </div>
+    <div class="stack">
+      <label for="p-brief">תיאור קצר או בריף</label>
+      <textarea id="p-brief" name="brief" rows="4" maxlength="5000" {{ invalid(errors, 'brief') }}>{{ values.brief }}</textarea>
+      {{ field_error(errors, 'brief') }}
+    </div>
+    <div class="stack">
+      <label for="p-links">קישורים לקבצים (Drive, Dropbox...)</label>
+      <textarea id="p-links" name="links" rows="3" dir="ltr" maxlength="2000" placeholder="https://..." {{ invalid(errors, 'links') }}>{{ values.links }}</textarea>
+      <p class="hint">קישור אחד בכל שורה.</p>
+      {{ field_error(errors, 'links') }}
+    </div>
+    <div class="stack">
+      <label for="p-notes">הערות</label>
+      <textarea id="p-notes" name="notes" rows="3" maxlength="5000" {{ invalid(errors, 'notes') }}>{{ values.notes }}</textarea>
+      {{ field_error(errors, 'notes') }}
+    </div>
+    <div class="form-actions"><button type="submit" class="btn btn-primary">{{ 'שמירה' if project else 'יצירת פרויקט' }}</button></div>
+  </form>
+
+  {% if project %}
+    <aside>
+      <section class="card">
+        <h2>הצעות מחיר</h2>
+        {% if project.quotes %}
+          <ul class="rows">
+            {% for q in project.quotes %}
+              <li class="list-row">
+                <a href="{{ url_for('admin.pricing_edit', quote_id=q.id) }}" class="strong">{{ q.title }}</a>
+                <span class="num">{{ '{:,}'.format(q.total) }} ₪</span>
+                <span class="badge badge-q-{{ q.status }}">{{ q.status_label }}</span>
+                <form method="post" action="{{ url_for('admin.client_project_detach_quote', project_id=project.id, quote_id=q.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn-text">הסרה</button>
+                </form>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="muted small">עוד אין הצעות מחיר בפרויקט.</p>
+        {% endif %}
+        {% if attachable %}
+          <form method="post" action="{{ url_for('admin.client_project_attach_quote', project_id=project.id) }}" class="inline-add">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <select name="quote_id" aria-label="הצעה של הלקוח" required>
+              <option value="">שיוך הצעה קיימת של הלקוח…</option>
+              {% for q in attachable %}<option value="{{ q.id }}">{{ q.title }} · {{ '{:,}'.format(q.total) }} ₪</option>{% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm">שיוך</button>
+          </form>
+        {% endif %}
+      </section>
+      {% if project.link_list %}
+        <section class="card">
+          <h2>קבצים</h2>
+          <ul class="rows">
+            {% for link in project.link_list %}<li class="list-row"><a href="{{ link }}" target="_blank" rel="noopener noreferrer" dir="ltr" class="link">{{ link | truncate(60) }}</a></li>{% endfor %}
+          </ul>
+        </section>
+      {% endif %}
+      <div class="card danger-zone">
+        <form method="post" action="{{ url_for('admin.client_project_delete', project_id=project.id) }}" data-confirm="למחוק את הפרויקט? ההצעות שלו יישארו אצל הלקוח.">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn-text danger">מחיקת הפרויקט</button>
+        </form>
+      </div>
+    </aside>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,144 @@
+{% extends "admin/base_admin.html" %}
+{% from "admin/_crm.html" import note_form, note_row %}
+{% from "admin/_client_fields.html" import client_fields %}
+{% block title %}{{ client.display_name }}{% endblock %}
+{% block content %}
+{% set here = url_for('admin.client_detail', client_id=client.id) %}
+<a href="{{ url_for('admin.clients') }}" class="back">→ חזרה ללקוחות</a>
+<header class="page-head">
+  <div>
+    <h1>{{ client.display_name }} <span class="badge badge-c-{{ client.status }}">{{ client.status_label }}</span></h1>
+    <p class="muted">{% if client.company %}{{ client.name }} · {% endif %}לקוח מאז {{ client.created_at.strftime('%d/%m/%Y') }} · {{ client.source_label }}</p>
+  </div>
+  <div class="row-actions">
+    {% if client.phone %}<a href="tel:{{ client.phone }}" class="btn btn-primary">חיוג</a>{% endif %}
+    {% if client.email %}<a href="mailto:{{ client.email }}?subject={{ 'NOFAI Studio' | urlencode }}" class="btn">מייל</a>{% endif %}
+    <details class="menu">
+      <summary class="btn">פעולות ▾</summary>
+      <div class="menu-list">
+        <a href="{{ url_for('admin.client_project_new', client_id=client.id) }}">פרויקט חדש</a>
+        <a href="{{ url_for('admin.pricing_new', client=client.id) }}">הצעת מחיר חדשה</a>
+        <a href="{{ url_for('admin.client_detail', client_id=client.id, tab='details') }}">עריכת פרטים</a>
+        <form method="post" action="{{ url_for('admin.client_delete', client_id=client.id) }}" data-confirm="{{ 'למחוק את הלקוח ' ~ client.display_name ~ '? הפרויקטים שלו יימחקו. הפניות וההצעות יישמרו.' }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="danger">מחיקת הלקוח</button>
+        </form>
+      </div>
+    </details>
+  </div>
+</header>
+
+<nav class="tabs" aria-label="כרטיס לקוח">
+  <a href="{{ url_for('admin.client_detail', client_id=client.id) }}" {% if tab == 'timeline' %}aria-current="page"{% endif %}>סקירה והיסטוריה</a>
+  <a href="{{ url_for('admin.client_detail', client_id=client.id, tab='projects') }}" {% if tab == 'projects' %}aria-current="page"{% endif %}>פרויקטים <span class="count">{{ client.projects | length }}</span></a>
+  <a href="{{ url_for('admin.client_detail', client_id=client.id, tab='quotes') }}" {% if tab == 'quotes' %}aria-current="page"{% endif %}>הצעות מחיר <span class="count">{{ client.quotes | length }}</span></a>
+  <a href="{{ url_for('admin.client_detail', client_id=client.id, tab='details') }}" {% if tab == 'details' %}aria-current="page"{% endif %}>פרטים</a>
+</nav>
+
+{% if tab == 'timeline' %}
+  <div class="split">
+    <section class="card">
+      <h2>היסטוריה</h2>
+      {% if timeline %}
+        <ol class="timeline">
+          {% for item in timeline %}
+            <li class="timeline-item">
+              {% if item.note %}
+                {{ note_row(item.note, here) }}
+              {% else %}
+                <div class="timeline-head">
+                  <span class="badge badge-note">{{ item.label }}</span>
+                  <time class="muted small" datetime="{{ item.when.isoformat() }}">{{ item.when.strftime('%d/%m/%Y %H:%M') }}</time>
+                </div>
+                {% if item.title %}<p class="strong">{% if item.href %}<a href="{{ item.href }}" class="strong">{{ item.title }}</a>{% else %}{{ item.title }}{% endif %}</p>{% elif item.href %}<p><a href="{{ item.href }}" class="link">לפתיחה ←</a></p>{% endif %}
+                {% if item.body %}<p class="muted">{{ item.body | truncate(280) }}</p>{% endif %}
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <p class="muted">עוד אין היסטוריה ללקוח הזה.</p>
+      {% endif %}
+    </section>
+    <aside>
+      <section class="card">
+        <h2>הוספת הערה</h2>
+        {{ note_form(url_for('admin.client_note_add', client_id=client.id)) }}
+      </section>
+      <section class="card">
+        <dl class="meta">
+          <dt>טלפון</dt><dd dir="ltr">{{ client.phone or '—' }}</dd>
+          <dt>אימייל</dt><dd dir="ltr">{{ client.email or '—' }}</dd>
+          {% if client.website %}<dt>אתר</dt><dd dir="ltr">{{ client.website }}</dd>{% endif %}
+          <dt>שפה</dt><dd>{{ 'עברית' if client.language == 'he' else 'אנגלית' }}</dd>
+        </dl>
+      </section>
+    </aside>
+  </div>
+
+{% elif tab == 'projects' %}
+  <div class="card-head"><h2>פרויקטים</h2><a href="{{ url_for('admin.client_project_new', client_id=client.id) }}" class="btn btn-sm">פרויקט חדש</a></div>
+  {% if client.projects %}
+    <div class="card flush">
+      <table class="table">
+        <thead><tr><th scope="col">פרויקט</th><th scope="col">סטטוס</th><th scope="col">יעד</th><th scope="col">סכום</th><th scope="col">הצעות</th></tr></thead>
+        <tbody>
+          {% for p in client.projects %}
+            <tr>
+              <td data-label="פרויקט"><a href="{{ url_for('admin.client_project', project_id=p.id) }}" class="strong">{{ p.name }}</a>{% if p.service %}<div class="muted small">{{ p.service }}</div>{% endif %}</td>
+              <td data-label="סטטוס"><span class="badge badge-p-{{ p.status }}">{{ p.status_label }}</span></td>
+              <td data-label="יעד" class="nowrap">{{ p.due_date.strftime('%d/%m/%Y') if p.due_date else '—' }}</td>
+              <td data-label="סכום" class="num nowrap">{{ ('{:,} ₪'.format(p.amount)) if p.amount is not none else '—' }}</td>
+              <td data-label="הצעות" class="num">{{ p.quotes | length }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty">עוד אין פרויקטים ללקוח הזה.</div>
+  {% endif %}
+
+{% elif tab == 'quotes' %}
+  <div class="card-head"><h2>הצעות מחיר</h2><a href="{{ url_for('admin.pricing_new', client=client.id) }}" class="btn btn-sm">הצעת מחיר חדשה</a></div>
+  {% if client.quotes %}
+    <div class="card flush">
+      <table class="table">
+        <thead><tr><th scope="col">הצעה</th><th scope="col">פרויקט</th><th scope="col">סכום</th><th scope="col">עודכנה</th><th scope="col">סטטוס</th></tr></thead>
+        <tbody>
+          {% for q in client.quotes %}
+            <tr>
+              <td data-label="הצעה"><a href="{{ url_for('admin.pricing_edit', quote_id=q.id) }}" class="strong">{{ q.title }}</a></td>
+              <td data-label="פרויקט">{% if q.project %}<a href="{{ url_for('admin.client_project', project_id=q.project.id) }}" class="link">{{ q.project.name }}</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+              <td data-label="סכום" class="num nowrap">{{ '{:,}'.format(q.total) }} ₪</td>
+              <td data-label="עודכנה" class="nowrap">{{ q.updated_at.strftime('%d/%m/%Y') }}</td>
+              <td data-label="סטטוס"><span class="badge badge-q-{{ q.status }}">{{ q.status_label }}</span></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty">עוד אין הצעות מחיר ללקוח הזה.</div>
+  {% endif %}
+
+{% else %}
+  <form method="post" action="{{ url_for('admin.client_edit', client_id=client.id) }}" class="card" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2>פרטי הלקוח</h2>
+    {{ client_fields(values, errors, sources, statuses) }}
+    <div class="form-actions"><button type="submit" class="btn btn-primary">שמירה</button></div>
+  </form>
+  {% if client.inquiries %}
+    <section class="card">
+      <h2>פניות מהלקוח</h2>
+      <ul class="rows">
+        {% for inq in client.inquiries %}
+          <li class="list-row"><a href="{{ url_for('admin.inquiry_detail', inquiry_id=inq.id) }}" class="strong">{{ inq.created_at.strftime('%d/%m/%Y') }}{% if inq.service %} · {{ inq.service }}{% endif %}</a>
+            <span class="muted">{{ inq.message | truncate(90) }}</span></li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+{% endif %}
+{% endblock %}

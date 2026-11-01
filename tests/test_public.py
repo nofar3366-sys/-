@@ -103,8 +103,8 @@ def test_user_content_is_escaped(client):
 # ---------------------------------------------------------------- contact form
 
 JSON = {"Accept": "application/json"}
-VALID = {"name": "Dana", "email": "Dana@Brand.com", "company": "Brand", "service": "Campaigns",
-         "message": "We'd love a summer campaign for our new sunglasses."}
+VALID = {"name": "Dana", "phone": "054-912 2044", "email": "Dana@Brand.com", "company": "Brand",
+         "service": "Campaigns", "message": "We'd love a summer campaign for our new sunglasses."}
 
 
 def test_contact_submit_saves_and_reports(client):
@@ -114,10 +114,63 @@ def test_contact_submit_saves_and_reports(client):
     assert (q.email, q.language, q.status, q.notified) == ("dana@brand.com", "he", "new", False)
 
 
+def test_contact_phone_is_saved(client):
+    r = client.post("/he/contact/", data=VALID, headers=JSON)
+    assert r.status_code == 201
+    assert Inquiry.query.one().phone == "054-912 2044"
+
+
+def test_contact_email_is_optional(client):
+    r = client.post("/he/contact/", data={**VALID, "email": ""}, headers=JSON)
+    assert r.status_code == 201
+    q = Inquiry.query.one()
+    assert q.email == "" and q.phone == "054-912 2044"
+    r = client.post("/he/contact/", data={k: v for k, v in VALID.items() if k != "email"}, headers=JSON)
+    assert r.status_code == 201                                       # field missing altogether
+    r = client.post("/en/contact/", data={**VALID, "email": "not-an-email"}, headers=JSON)
+    assert r.status_code == 422 and "email" in r.get_json()["errors"]  # still checked when given
+
+
+def test_contact_phone_is_required(client):
+    for missing in ({**VALID, "phone": ""}, {k: v for k, v in VALID.items() if k != "phone"}):
+        r = client.post("/he/contact/", data=missing, headers=JSON)
+        assert r.status_code == 422 and r.get_json()["errors"]["phone"] == "נא להזין מספר טלפון תקין"
+    assert Inquiry.query.count() == 0
+
+
+def test_contact_phone_validation(client):
+    for bad in ("abc", "12345", "<script>", "0549122044" * 4):
+        r = client.post("/en/contact/", data={**VALID, "phone": bad}, headers=JSON)
+        assert r.status_code == 422 and "phone" in r.get_json()["errors"], bad
+    r = client.post("/he/contact/", data={**VALID, "phone": "x"}, headers=JSON)
+    assert r.get_json()["errors"]["phone"] == "נא להזין מספר טלפון תקין"
+    assert Inquiry.query.count() == 0
+
+
+def test_contact_page_has_phone_field(client):
+    for lang, label in (("en", "Phone"), ("he", "טלפון")):
+        html = client.get(f"/{lang}/contact/").get_data(as_text=True)
+        assert 'name="phone"' in html and 'type="tel"' in html and label in html
+
+
+def test_contact_form_field_order_and_required(client):
+    """Name, phone, email, brand: in that order; the phone is required, the email is not."""
+    for lang in ("en", "he"):
+        html = client.get(f"/{lang}/contact/").get_data(as_text=True)
+        positions = [html.index(f'name="{n}"') for n in ("name", "phone", "email", "company")]
+        assert positions == sorted(positions)
+        phone = re.search(r'<input[^>]*name="phone"[^>]*>', html).group(0)
+        email = re.search(r'<input[^>]*name="email"[^>]*>', html).group(0)
+        assert " required" in phone and " required" not in email
+        # the phone label carries no "(optional)" bracket, the email label does
+        assert "optional" not in re.search(r'<label for="f-phone">.*?</label>', html, re.S).group(0)
+        assert "optional" in re.search(r'<label for="f-email">.*?</label>', html, re.S).group(0)
+
+
 def test_contact_errors_in_page_language(client):
     r = client.post("/he/contact/", data={"name": "", "email": "x", "message": "hi"}, headers=JSON)
     errors = r.get_json()["errors"]
-    assert r.status_code == 422 and set(errors) == {"name", "email", "message"}
+    assert r.status_code == 422 and set(errors) == {"name", "phone", "email", "message"}
     assert errors["email"] == "נא להזין כתובת אימייל תקינה"
     r = client.post("/en/contact/", data={"name": "", "email": "x", "message": "hi"}, headers=JSON)
     assert r.get_json()["errors"]["email"] == "Please enter a valid email address"

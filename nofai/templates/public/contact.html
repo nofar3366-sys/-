@@ -28,7 +28,7 @@
             {% if static %}name="contact" action="{{ url_for('public.contact_thanks') }}" data-netlify="true" netlify-honeypot="website"{% endif %}
             data-msg-sending="{{ t('contact.sending') }}" data-msg-fix="{{ t('contact.fix') }}"
             data-msg-offline="{{ t('contact.offline') }}" data-msg-success="{{ t('contact.success') }}"
-            data-err-name="{{ t('err.name') }}" data-err-email="{{ t('err.email') }}" data-err-message="{{ t('err.message') }}">
+            data-err-name="{{ t('err.name') }}" data-err-email="{{ t('err.email') }}" data-err-phone="{{ t('err.phone') }}" data-err-message="{{ t('err.message') }}">
         {% if static %}
           <input type="hidden" name="form-name" value="contact">
           <input type="hidden" name="language" value="{{ lang }}">
@@ -46,8 +46,13 @@
           <p class="field-error" id="e-name"></p>
         </div>
         <div class="field">
-          <label for="f-email">{{ t('contact.email') }}</label>
-          <input id="f-email" name="email" type="email" dir="ltr" autocomplete="email" maxlength="160" required aria-describedby="e-email">
+          <label for="f-phone">{{ t('contact.phone') }}</label>
+          <input id="f-phone" name="phone" type="tel" dir="ltr" autocomplete="tel" inputmode="tel" maxlength="30" required aria-describedby="e-phone">
+          <p class="field-error" id="e-phone"></p>
+        </div>
+        <div class="field">
+          <label for="f-email">{{ t('contact.email') }} <span class="optional">({{ t('contact.optional') }})</span></label>
+          <input id="f-email" name="email" type="email" dir="ltr" autocomplete="email" maxlength="160" aria-describedby="e-email">
           <p class="field-error" id="e-email"></p>
         </div>
         <div class="field">

@@ -1,0 +1,53 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}לקוחות{% endblock %}
+{% block content %}
+<header class="page-head">
+  <h1>לקוחות</h1>
+  <div class="row-actions"><a href="{{ url_for('admin.client_new') }}" class="btn btn-primary">לקוח חדש</a></div>
+</header>
+
+<form method="get" action="{{ url_for('admin.clients') }}" class="inline-add search-bar" role="search">
+  <input type="search" name="q" value="{{ q }}" placeholder="חיפוש לפי שם, מותג, אימייל או טלפון" aria-label="חיפוש לקוח" maxlength="100">
+  {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+  <button type="submit" class="btn">חיפוש</button>
+  {% if q %}<a href="{{ url_for('admin.clients', status=status or None) }}" class="btn-text">ניקוי</a>{% endif %}
+</form>
+
+<nav class="tabs" aria-label="סינון לפי סטטוס">
+  <a href="{{ url_for('admin.clients', q=q or None) }}" {% if not status %}aria-current="page"{% endif %}>הכל <span class="count">{{ counts.values() | sum }}</span></a>
+  {% for s in statuses %}
+    <a href="{{ url_for('admin.clients', status=s, q=q or None) }}" {% if status == s %}aria-current="page"{% endif %}>{{ labels[s] }} <span class="count">{{ counts.get(s, 0) }}</span></a>
+  {% endfor %}
+</nav>
+
+{% if clients %}
+  <div class="card flush">
+    <table class="table">
+      <thead><tr><th scope="col">לקוח</th><th scope="col">יצירת קשר</th><th scope="col">פרויקטים</th><th scope="col">פעילות אחרונה</th><th scope="col">סטטוס</th></tr></thead>
+      <tbody>
+        {% for c in clients %}
+          <tr>
+            <td data-label="לקוח"><a href="{{ url_for('admin.client_detail', client_id=c.id) }}" class="strong">{{ c.display_name }}</a>
+              {% if c.company %}<div class="muted small">{{ c.name }}</div>{% endif %}</td>
+            <td data-label="יצירת קשר"><div dir="ltr" class="muted small">{{ c.phone or '' }}</div><div dir="ltr" class="muted small">{{ c.email or '' }}</div></td>
+            <td data-label="פרויקטים" class="num">{{ project_counts.get(c.id, 0) }}</td>
+            <td data-label="פעילות אחרונה" class="nowrap">{{ c.updated_at.strftime('%d/%m/%Y') }}</td>
+            <td data-label="סטטוס"><span class="badge badge-c-{{ c.status }}">{{ c.status_label }}</span></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if pagination.pages > 1 %}
+    <nav class="pagination" aria-label="עמודים">
+      {% if pagination.has_prev %}<a href="{{ url_for('admin.clients', status=status or None, q=q or None, page=pagination.prev_num) }}">→ הקודם</a>{% endif %}
+      <span>עמוד {{ pagination.page }} מתוך {{ pagination.pages }}</span>
+      {% if pagination.has_next %}<a href="{{ url_for('admin.clients', status=status or None, q=q or None, page=pagination.next_num) }}">הבא ←</a>{% endif %}
+    </nav>
+  {% endif %}
+{% else %}
+  <div class="empty">
+    {% if q or status %}לא נמצאו לקוחות שמתאימים לחיפוש.{% else %}עוד אין לקוחות. אפשר להמיר פנייה ללקוח, או ליצור לקוח חדש ידנית.{% endif %}
+  </div>
+{% endif %}
+{% endblock %}

@@ -11,9 +11,13 @@
   const msg = form.dataset;
   const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
+  const PHONE_RE = /^\+?[\d\s\-().]{7,30}$/;
   const rules = {
     name: (v) => (v ? "" : msg.errName),
-    email: (v) => (EMAIL_RE.test(v) ? "" : msg.errEmail),
+    // required: the phone is how the visitor gets called back
+    phone: (v) => (PHONE_RE.test(v) && (v.match(/\d/g) || []).length >= 7 ? "" : msg.errPhone),
+    // optional: empty is fine, otherwise it must be a valid address
+    email: (v) => (!v || EMAIL_RE.test(v) ? "" : msg.errEmail),
     message: (v) => (v.length >= 10 ? "" : msg.errMessage),
   };
 

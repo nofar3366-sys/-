@@ -1,0 +1,220 @@
+{% extends "admin/base_admin.html" %}
+{% from "admin/_macros.html" import delete_button %}
+{% block title %}{{ quote.title if quote else 'הצעת מחיר חדשה' }}{% endblock %}
+{% block content %}
+{% macro num_field(path, label, step=1, min=0, placeholder='') %}
+  <label class="pc-field"><span>{{ label }}</span><input type="number" min="{{ min }}" step="{{ step }}" data-path="{{ path }}" inputmode="decimal" {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}></label>
+{% endmacro %}
+
+<a href="{{ url_for('admin.pricing') }}" class="back">→ חזרה להצעות</a>
+<header class="page-head">
+  <div>
+    <h1 id="pc-title">{{ quote.title if quote else 'הצעת מחיר חדשה' }}</h1>
+    {% if inquiry %}<p class="muted">מקושרת לפנייה של <a href="{{ url_for('admin.inquiry_detail', inquiry_id=inquiry.id) }}" class="link">{{ inquiry.name }}</a></p>{% endif %}
+    {% if client %}<p class="muted">הלקוח: <a href="{{ url_for('admin.client_detail', client_id=client.id) }}" class="link">{{ client.display_name }}</a>{% if project %} · פרויקט: <a href="{{ url_for('admin.client_project', project_id=project.id) }}" class="link">{{ project.name }}</a>{% endif %}</p>{% endif %}
+  </div>
+  <div class="row-actions">
+    <button type="button" class="btn btn-sm" id="pc-load-example">דוגמה: La Fam</button>
+    {% if quote %}
+      <form method="post" action="{{ url_for('admin.pricing_duplicate', quote_id=quote.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm">שכפול</button>
+      </form>
+      {{ delete_button('admin.pricing_delete', 'quote_id', quote.id, 'למחוק את ההצעה?', 'מחיקת ההצעה') }}
+    {% endif %}
+  </div>
+</header>
+
+<div class="pc" id="pricing-app"
+     data-quote='{{ (quote.payload if quote else none) | tojson | forceescape }}'
+     data-defaults='{{ defaults | tojson | forceescape }}'
+     data-status="{{ quote.status if quote else 'draft' }}"
+     data-prefill-client="{{ '' if quote else (client.display_name if client else ((inquiry.company or inquiry.name) if inquiry else '')) }}"
+     data-save-url="{{ url_for('admin.pricing_edit', quote_id=quote.id) if quote else url_for('admin.pricing_new', inquiry=inquiry.id if inquiry else None, client=client.id if client else None, project=project.id if project else None) }}"
+     data-defaults-url="{{ url_for('admin.pricing_defaults') }}"
+     data-csrf="{{ csrf_token() }}">
+
+<div class="pc-form" id="pc-form">
+
+  <section class="card">
+    <h2>הפרויקט</h2>
+    <p class="hint">גודל הלקוח מזיז את המחיר: עסק קטן מקבל הנחה, מותג מבוסס משלם יותר על אותה עבודה.</p>
+    <div class="pc-grid">
+      <label class="pc-field"><span>לקוח / מותג</span><input type="text" maxlength="120" data-path="project.client"></label>
+      <label class="pc-field"><span>שם הפרויקט</span><input type="text" maxlength="160" data-path="project.name"></label>
+      <label class="pc-field"><span>סוג לקוח</span>
+        <select data-path="project.clientType">
+          <option value="small">עסק קטן / מתחיל</option>
+          <option value="regular">עסק רגיל</option>
+          <option value="brand">מותג מבוסס</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>ניתוח טקסט</h2>
+    <p class="hint">הדביקי בריף או הצעת מחיר. הזיהוי נעשה כאן בדפדפן לפי ניסוחים מוכרים, בלי AI. מומלץ כל סעיף בשורה נפרדת. רק שדות שתסמני יוחלפו, וכל השאר נשאר כמו שהוא.</p>
+    <label class="pc-field" for="pc-brief"><span>מה כולל הפרויקט?</span></label>
+    <textarea id="pc-brief" rows="8" maxlength="5000" data-path="project.brief"
+              placeholder="שם לקוח: מעבר לים&#10;פרויקט: AI Brand Film&#10;סרטון עד 30 שניות&#10;פגישת קריאייטיב (שעה)&#10;פיתוח קונספט ותסריט (שעתיים)&#10;עריכה (שעה)&#10;עד 2 סבבי תיקונים&#10;מחיר: 4,500 ₪"></textarea>
+    <div class="pc-inline">
+      <button type="button" class="btn btn-primary" id="pc-parse">זיהוי נתונים מהטקסט</button>
+    </div>
+    <div class="pc-parse" id="pc-parse-result" hidden></div>
+  </section>
+
+  <section class="card">
+    <h2>זמן עבודה (שעות)</h2>
+    <p class="hint">כל הזמן, לא רק הג׳ינרוט. ניהול ותקשורת עם הלקוח מתווספים באחוזים מההגדרות.</p>
+    <div class="pc-grid">
+      {{ num_field('project.hours.concept', 'מחקר, קונספט, מודבורד, תסריט', 0.25) }}
+      {{ num_field('project.hours.meetings', 'פגישות', 0.25) }}
+      {{ num_field('project.hours.generation', 'ג׳ינרוט תמונות ווידאו', 0.25) }}
+      {{ num_field('project.hours.editing', 'עריכת וידאו ופוסט', 0.25) }}
+      {{ num_field('project.hours.admin', 'אוצרות, בחירה וייצוא', 0.25) }}
+    </div>
+    <div class="pc-grid pc-gap-top">
+      {{ num_field('project.roundsIncluded', 'סבבי תיקונים כלולים') }}
+      {{ num_field('project.extraRounds', 'סבבים נוספים בתשלום') }}
+    </div>
+    <div class="pc-sum"><span>סה״כ שעות שהזנת</span><b id="pc-hours-sum">0</b></div>
+  </section>
+
+  <section class="card">
+    <h2>תוצרים וקרדיטים</h2>
+    <p class="hint">שורה לכל שלב. ״כמות״ היא מה שהלקוח מקבל בפועל, ״קרדיטים״ הם כל מה שהשלב צרך, כולל ניסיונות שנזרקו. מקדם הטעויות מכסה ניסיונות ותיקונים שעוד לא קרו: בהצעה מראש 1.5 עד 2, בסיכום בפועל 1 עד 1.2.</p>
+    <div class="pc-rows" id="pc-credit-rows"></div>
+    <div class="pc-inline">
+      <button type="button" class="btn btn-sm" id="pc-add-credit">+ הוספת שורה</button>
+      <label class="pc-field pc-narrow"><span>מקדם טעויות</span><input type="number" min="1" step="0.1" data-path="project.coef" inputmode="decimal"></label>
+    </div>
+    <div class="pc-sum"><span>קרדיטים שהזנת → אחרי מקדם</span><b id="pc-credits-sum">0</b></div>
+  </section>
+
+  <section class="card">
+    <h2>דוגמניות</h2>
+    <p class="hint">שווי הדמות נפרד מהשעות ומהקרדיטים שלקח לבנות אותה. דמות לא בלעדית נשארת בספרייה שלך ויכולה להופיע אצל מותגים אחרים. דמות בלעדית שמורה רק ללקוח, והוא משלם על זה. הסכום מוכפל במכפיל הלקוח.</p>
+    <div class="pc-rows" id="pc-model-rows"></div>
+    <button type="button" class="btn btn-sm pc-gap-top" id="pc-add-model">+ הוספת דוגמנית</button>
+    <div class="pc-sum"><span>סה״כ דוגמניות</span><b id="pc-models-sum">0</b></div>
+  </section>
+
+  <section class="card">
+    <h2>זכויות שימוש</h2>
+    <p class="hint">איפה ולכמה זמן הלקוח יכול להשתמש בתוצרים. מחושב כאחוז ממחיר ההפקה.</p>
+    <div class="pc-choices" id="pc-usage"></div>
+    <p class="pc-subh">טריטוריה</p>
+    <div class="pc-choices">
+      <div class="pc-choice"><input type="radio" name="territory" id="ter-il" value="il" data-path="project.territory"><label for="ter-il">ישראל<small>כלול</small></label></div>
+      <div class="pc-choice"><input type="radio" name="territory" id="ter-int" value="int" data-path="project.territory"><label for="ter-int">בינלאומי<small id="pc-ter-lbl"></small></label></div>
+    </div>
+    <p class="pc-subh">תוספות</p>
+    <label class="pc-toggle"><input type="checkbox" data-path="project.rush"><span>אקספרס<small id="pc-rush-lbl"></small></span></label>
+    <label class="pc-toggle"><input type="checkbox" data-path="project.catExcl"><span>בלעדיות קטגוריה<small id="pc-cat-lbl"></small></span></label>
+  </section>
+
+  <section class="card">
+    <h2>הוצאות, הנחה ומחיר סופי</h2>
+    <p class="hint">הוצאות (מוזיקה, קריינות, ספקים) עוברות ללקוח כמו שהן, בלי רזרבה. הנחה מופיעה בהצעה כשורה נפרדת, כך שהלקוח רואה גם את המחיר המלא.</p>
+    <div class="pc-grid">
+      {{ num_field('project.expenses', 'הוצאות (₪, לפני מע״מ)', 10) }}
+      {{ num_field('project.discountPct', 'הנחה (%)', 1) }}
+      {{ num_field('project.manual', 'מחיר סופי ידני (אופציונלי)', 50, 0, 'ריק = המחיר המומלץ') }}
+    </div>
+  </section>
+
+  <section class="card">
+    <details class="pc-settings" id="pc-settings">
+      <summary>הגדרות תמחור</summary>
+      <p class="hint">ההגדרות נשמרות יחד עם ההצעה הזו. כדי שיחולו גם על הצעות חדשות, לחצי על ״שמירה כברירת מחדל״.</p>
+      <p class="pc-subh">בסיס</p>
+      <div class="pc-grid">
+        {{ num_field('settings.rate', 'תעריף שעתי (₪)', 10) }}
+        {{ num_field('settings.overhead', 'ניהול ותקשורת (% מהשעות)') }}
+        {{ num_field('settings.margin', 'רזרבה ורווחיות (%)') }}
+        {{ num_field('settings.minimum', 'מחיר מינימום לפרויקט (₪)', 50) }}
+        {{ num_field('settings.rounding', 'עיגול כלפי מעלה ל- (₪)', 1, 1) }}
+        {{ num_field('settings.revPrice', 'מחיר לסבב תיקונים נוסף (₪)', 50) }}
+        {{ num_field('settings.vat', 'מע״מ (%) · עוסק פטור: 0') }}
+      </div>
+      <p class="pc-subh">עלות קרדיט</p>
+      <p class="hint">מחיר המסלול החודשי חלקי מספר הקרדיטים שאת <b>מנצלת בפועל</b> בחודש. קרדיטים שלא נוצלו הם עלות, ולכן המחיר האמיתי לקרדיט גבוה ממה שכתוב במסלול.</p>
+      <div class="pc-grid">
+        {{ num_field('settings.planPrice', 'מחיר המסלול לחודש (₪)', 1) }}
+        {{ num_field('settings.planCredits', 'קרדיטים שאת מנצלת בחודש', 10) }}
+        <div class="pc-field"><span>מחיר לקרדיט</span><output id="pc-credit-price" class="pc-output">0</output></div>
+      </div>
+      <p class="pc-subh">תנאי תשלום</p>
+      <div class="pc-grid">
+        {{ num_field('settings.deposit', 'מקדמה באישור (%)', 5) }}
+        {{ num_field('settings.validity', 'תוקף ההצעה (ימים)') }}
+      </div>
+      <p class="pc-subh">מכפילי לקוח</p>
+      <div class="pc-grid">
+        {{ num_field('settings.client.small', 'עסק קטן', 0.05) }}
+        {{ num_field('settings.client.regular', 'עסק רגיל', 0.05) }}
+        {{ num_field('settings.client.brand', 'מותג מבוסס', 0.05) }}
+      </div>
+      <p class="pc-subh">דוגמניות (₪)</p>
+      <div class="pc-grid">
+        {{ num_field('settings.model.newNon', 'חדשה, לא בלעדית', 50) }}
+        {{ num_field('settings.model.libNon', 'מהספרייה, לא בלעדית', 50) }}
+        {{ num_field('settings.model.excl12', 'בלעדית ל-12 חודשים', 50) }}
+        {{ num_field('settings.model.exclPerp', 'בלעדית לצמיתות', 50) }}
+      </div>
+      <p class="pc-subh">זכויות שימוש ותוספות (% ממחיר ההפקה)</p>
+      <div class="pc-grid">
+        {{ num_field('settings.usage.organic', 'אורגני', 5) }}
+        {{ num_field('settings.usage.paid3', 'ממומן, 3 חודשים', 5) }}
+        {{ num_field('settings.usage.paid12', 'ממומן, 12 חודשים', 5) }}
+        {{ num_field('settings.usage.buyout', 'רכישה מלאה (buyout)', 5) }}
+        {{ num_field('settings.territoryPct', 'טריטוריה בינלאומית', 5) }}
+        {{ num_field('settings.rushPct', 'אקספרס', 5) }}
+        {{ num_field('settings.catPct', 'בלעדיות קטגוריה', 5) }}
+      </div>
+      <div class="row-actions pc-gap-top">
+        <button type="button" class="btn btn-sm" id="pc-save-defaults">שמירה כברירת מחדל להצעות חדשות</button>
+        <button type="button" class="btn-text" id="pc-load-defaults">טעינת ברירת המחדל שלי</button>
+        <button type="button" class="btn-text" id="pc-factory">ערכי ההתחלה של המערכת</button>
+      </div>
+    </details>
+  </section>
+</div>
+
+<aside class="pc-aside">
+  <div class="card pc-quote">
+    <div class="pc-who" id="pc-who"></div>
+    <div class="pc-total" id="pc-total">0 ₪</div>
+    <div class="pc-total-sub" id="pc-total-sub"></div>
+    <div class="pc-lines" id="pc-lines"></div>
+    <div class="pc-warn" id="pc-warn" role="status"></div>
+    <div class="pc-insight" id="pc-insight"></div>
+    <div class="pc-tiers" id="pc-tiers"></div>
+
+    <div class="pc-save">
+      <label class="pc-field"><span>סטטוס</span>
+        <select id="pc-status">{% for s in statuses %}<option value="{{ s }}">{{ labels[s] }}</option>{% endfor %}</select>
+      </label>
+      <button type="button" class="btn btn-primary" id="pc-save">שמירת ההצעה</button>
+    </div>
+    <div class="pc-status" id="pc-flash" role="status" aria-live="polite"></div>
+
+    <div class="row-actions">
+      <button type="button" class="btn btn-sm" id="pc-copy-quote">העתקת טקסט להצעה</button>
+      <button type="button" class="btn btn-sm" id="pc-copy-internal">העתקת פירוט פנימי</button>
+    </div>
+    <details class="pc-quote-text">
+      <summary>הצגת הטקסט ללקוח</summary>
+      <textarea id="pc-quote-text" readonly rows="14" aria-label="טקסט ההצעה ללקוח"></textarea>
+    </details>
+  </div>
+</aside>
+</div>
+
+<div class="pc-mobilebar" aria-hidden="true"><span>מחיר מומלץ</span><b id="pc-m-total">0 ₪</b></div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pricing-parse.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pricing.js') }}"></script>
+{% endblock %}

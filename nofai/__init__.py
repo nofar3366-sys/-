@@ -36,7 +36,7 @@ def create_app(config_class=None):
     register_security_headers(app)
 
     from . import models  # noqa: F401
-    from .routes import admin_content  # noqa: F401  (adds routes to admin_bp)
+    from .routes import admin_content, admin_crm, admin_pricing  # noqa: F401  (add routes to admin_bp)
     from .routes.admin import admin_bp
     from .routes.public import public_bp
     app.register_blueprint(public_bp)

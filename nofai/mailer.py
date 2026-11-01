@@ -19,7 +19,9 @@ def send_inquiry_notification(inquiry) -> bool:
     """E-mail the owner about a new inquiry. Returns True when it was delivered."""
     cfg = current_app.config
     lines = [
-        f"From: {inquiry.name} <{inquiry.email}>",
+        f"From: {inquiry.name}",
+        f"Phone: {inquiry.phone or '-'}",
+        f"Email: {inquiry.email or '-'}",
         f"Brand: {inquiry.company or '-'}",
         f"Interested in: {inquiry.service or '-'}",
         f"Language: {inquiry.language}",
@@ -38,7 +40,8 @@ def send_inquiry_notification(inquiry) -> bool:
     msg["Subject"] = f"NOFAI: new inquiry from {inquiry.name}"
     msg["From"] = cfg["MAIL_FROM"] or cfg["SMTP_USERNAME"]
     msg["To"] = cfg["NOTIFY_EMAIL"]
-    msg["Reply-To"] = inquiry.email   # "Reply" in the mail client answers the visitor directly
+    if inquiry.email:
+        msg["Reply-To"] = inquiry.email   # "Reply" in the mail client answers the visitor directly
     msg.set_content(body)
     try:
         with smtplib.SMTP(cfg["SMTP_HOST"], cfg["SMTP_PORT"], timeout=15) as smtp:

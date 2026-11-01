@@ -18,11 +18,12 @@
         {% for q in inquiries %}
           <tr class="{{ 'is-new' if q.status == 'new' }}">
             <td data-label="שם"><a href="{{ url_for('admin.inquiry_detail', inquiry_id=q.id) }}" class="strong">{{ q.name }}</a>
-              <div class="muted small" dir="ltr">{{ q.email }}</div></td>
+              <div class="muted small" dir="ltr">{{ q.phone or '' }}{% if q.phone and q.email %} · {% endif %}{{ q.email }}</div></td>
             <td data-label="מותג">{{ q.company or '—' }}</td>
             <td data-label="שירות">{{ q.service or '—' }}</td>
             <td data-label="התקבלה" class="nowrap">{{ q.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
-            <td data-label="סטטוס"><span class="badge badge-{{ q.status }}">{{ q.status_label }}</span></td>
+            <td data-label="סטטוס"><span class="badge badge-{{ q.status }}">{{ q.status_label }}</span>
+              {% if q.client_id %}<span class="badge badge-client">לקוח</span>{% endif %}</td>
           </tr>
         {% endfor %}
       </tbody>

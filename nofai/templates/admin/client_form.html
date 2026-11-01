@@ -1,0 +1,13 @@
+{% extends "admin/base_admin.html" %}
+{% from "admin/_client_fields.html" import client_fields %}
+{% block title %}לקוח חדש{% endblock %}
+{% block content %}
+<a href="{{ url_for('admin.clients') }}" class="back">→ חזרה ללקוחות</a>
+<header class="page-head"><h1>לקוח חדש</h1></header>
+
+<form method="post" action="{{ url_for('admin.client_new') }}" class="card" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {{ client_fields(values, errors, sources, statuses) }}
+  <div class="form-actions"><button type="submit" class="btn btn-primary">יצירת לקוח</button></div>
+</form>
+{% endblock %}

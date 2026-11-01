@@ -22,6 +22,8 @@
       {% for ep, label, prefix in [
            ('admin.dashboard', 'ראשי', 'admin.dashboard'),
            ('admin.inquiries', 'פניות', 'admin.inquir'),
+           ('admin.clients', 'לקוחות', 'admin.client'),
+           ('admin.pricing', 'תמחור', 'admin.pricing'),
            ('admin.projects', 'עבודות', 'admin.project'),
            ('admin.categories', 'קטגוריות', 'admin.categor'),
            ('admin.services', 'שירותים', 'admin.service'),
@@ -51,5 +53,6 @@
   {% block content %}{% endblock %}
 </main>
 <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% block scripts %}{% endblock %}
 </body>
 </html>

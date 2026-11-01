@@ -46,6 +46,7 @@ STRINGS = {
     "contact.title": {"en": "Contact", "he": "צור קשר"},
     "contact.name": {"en": "Name", "he": "שם"},
     "contact.email": {"en": "Email", "he": "אימייל"},
+    "contact.phone": {"en": "Phone", "he": "טלפון"},
     "contact.company": {"en": "Brand / company", "he": "מותג / חברה"},
     "contact.service": {"en": "What are you looking for?", "he": "מה מעניין אותך?"},
     "contact.service_any": {"en": "Not sure yet", "he": "עוד לא בטוח/ה"},
@@ -65,6 +66,7 @@ STRINGS = {
     # validation
     "err.name": {"en": "Please enter your name", "he": "נא להזין שם"},
     "err.email": {"en": "Please enter a valid email address", "he": "נא להזין כתובת אימייל תקינה"},
+    "err.phone": {"en": "Please enter a valid phone number", "he": "נא להזין מספר טלפון תקין"},
     "err.message": {"en": "Please write a few words about your project", "he": "נא לכתוב כמה מילים על הפרויקט"},
     "err.too_long": {"en": "This is too long", "he": "הטקסט ארוך מדי"},
     # 404 / footer

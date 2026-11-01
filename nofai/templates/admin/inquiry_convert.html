@@ -1,0 +1,68 @@
+{% extends "admin/base_admin.html" %}
+{% from "admin/_client_fields.html" import client_fields %}
+{% block title %}המרה ללקוח{% endblock %}
+{% block content %}
+<a href="{{ url_for('admin.inquiry_detail', inquiry_id=inquiry.id) }}" class="back">→ חזרה לפנייה</a>
+<header class="page-head">
+  <div>
+    <h1>המרה ללקוח</h1>
+    <p class="muted">הפנייה של {{ inquiry.name }}{% if inquiry.company %} · {{ inquiry.company }}{% endif %}. ההערות וההצעות שלה יעברו להיסטוריה של הלקוח.</p>
+  </div>
+</header>
+
+{% if matches %}
+  <section class="card card-notice">
+    <h2>נמצא לקוח דומה</h2>
+    <p class="muted">אותו טלפון או אותו אימייל. אפשר לשייך את הפנייה ללקוח הקיים במקום ליצור כפילות.</p>
+    <ul class="rows">
+      {% for m in matches %}
+        <li class="list-row">
+          <a href="{{ url_for('admin.client_detail', client_id=m.id) }}" class="strong">{{ m.display_name }}</a>
+          <span class="muted" dir="ltr">{{ m.phone or '' }} {{ m.email or '' }}</span>
+          <form method="post" action="{{ url_for('admin.inquiry_convert', inquiry_id=inquiry.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="existing">
+            <input type="hidden" name="client_id" value="{{ m.id }}">
+            <button type="submit" class="btn btn-sm btn-primary">שיוך ללקוח הזה</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endif %}
+
+<form method="post" action="{{ url_for('admin.inquiry_convert', inquiry_id=inquiry.id) }}" class="card" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="action" value="new">
+  <h2>{% if matches %}או ליצור לקוח חדש{% else %}פרטי הלקוח החדש{% endif %}</h2>
+  <p class="muted small">הפרטים נמשכו מהפנייה. אפשר לערוך אותם לפני השמירה.</p>
+  {{ client_fields(values, errors, sources, statuses) }}
+
+  <div class="convert-project">
+    <label class="check"><input type="checkbox" name="create_project" value="1" {% if request.form.get('create_project') %}checked{% endif %}> ליצור גם פרויקט ראשון מהפנייה</label>
+    <div class="stack">
+      <label for="project-name">שם הפרויקט</label>
+      <input id="project-name" name="project_name" value="{{ request.form.get('project_name', values.project_name) }}" maxlength="160">
+      <p class="hint">הפרויקט יקבל את תיאור הפנייה ואת השירות, וההצעות שלה (שלא נדחו) ישויכו אליו.</p>
+    </div>
+  </div>
+
+  <div class="form-actions"><button type="submit" class="btn btn-primary">המרה ללקוח</button>
+    <a href="{{ url_for('admin.inquiry_detail', inquiry_id=inquiry.id) }}" class="btn">ביטול</a></div>
+</form>
+
+{% if clients %}
+  <details class="card advanced">
+    <summary>שיוך ללקוח קיים אחר</summary>
+    <form method="post" action="{{ url_for('admin.inquiry_convert', inquiry_id=inquiry.id) }}" class="inline-add">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="existing">
+      <select name="client_id" aria-label="לקוח קיים" required>
+        <option value="">בחירת לקוח…</option>
+        {% for c in clients %}<option value="{{ c.id }}">{{ c.display_name }}{% if c.company %} ({{ c.name }}){% endif %}</option>{% endfor %}
+      </select>
+      <button type="submit" class="btn">שיוך</button>
+    </form>
+  </details>
+{% endif %}
+{% endblock %}

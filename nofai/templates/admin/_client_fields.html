@@ -1,0 +1,51 @@
+{% from "admin/_macros.html" import field_error, invalid %}
+
+{# The client's details form fields, shared by: new client, client card (details tab), inquiry conversion #}
+{% macro client_fields(values, errors, sources, statuses) %}
+  <div class="two">
+    <div class="stack">
+      <label for="c-name">שם איש הקשר</label>
+      <input id="c-name" name="name" value="{{ values.name }}" maxlength="100" required {{ invalid(errors, 'name') }}>
+      {{ field_error(errors, 'name') }}
+    </div>
+    <div class="stack">
+      <label for="c-phone">טלפון</label>
+      <input id="c-phone" name="phone" type="tel" dir="ltr" value="{{ values.phone }}" maxlength="30" {{ invalid(errors, 'phone') }}>
+      {{ field_error(errors, 'phone') }}
+    </div>
+    <div class="stack">
+      <label for="c-email">אימייל</label>
+      <input id="c-email" name="email" type="email" dir="ltr" value="{{ values.email }}" maxlength="160" {{ invalid(errors, 'email') }}>
+      {{ field_error(errors, 'email') }}
+    </div>
+    <div class="stack">
+      <label for="c-company">מותג / חברה</label>
+      <input id="c-company" name="company" value="{{ values.company }}" maxlength="120" {{ invalid(errors, 'company') }}>
+      {{ field_error(errors, 'company') }}
+    </div>
+    <div class="stack">
+      <label for="c-website">אתר או אינסטגרם של המותג</label>
+      <input id="c-website" name="website" dir="ltr" value="{{ values.website }}" maxlength="200" {{ invalid(errors, 'website') }}>
+      {{ field_error(errors, 'website') }}
+    </div>
+    <div class="stack">
+      <label for="c-language">שפה מועדפת</label>
+      <select id="c-language" name="language">
+        <option value="he" {% if values.language == 'he' %}selected{% endif %}>עברית</option>
+        <option value="en" {% if values.language == 'en' %}selected{% endif %}>אנגלית</option>
+      </select>
+    </div>
+    <div class="stack">
+      <label for="c-source">איך הגיע/ה אלינו</label>
+      <select id="c-source" name="source">
+        {% for s in sources.ALL %}<option value="{{ s }}" {% if values.source == s %}selected{% endif %}>{{ sources.LABELS_HE[s] }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="stack">
+      <label for="c-status">סטטוס לקוח</label>
+      <select id="c-status" name="status">
+        {% for s in statuses.ALL %}<option value="{{ s }}" {% if values.status == s %}selected{% endif %}>{{ statuses.LABELS_HE[s] }}</option>{% endfor %}
+      </select>
+    </div>
+  </div>
+{% endmacro %}

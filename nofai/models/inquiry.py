@@ -23,6 +23,7 @@ class Inquiry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(160), nullable=False)
+    phone = db.Column(db.String(30))        # optional: a number to call back
     company = db.Column(db.String(120))
     service = db.Column(db.String(120))     # the service title as chosen, kept even if the service is renamed
     message = db.Column(db.Text, nullable=False)
@@ -30,6 +31,10 @@ class Inquiry(db.Model):
     status = db.Column(db.String(10), nullable=False, default=InquiryStatus.NEW, index=True)
     notified = db.Column(db.Boolean, nullable=False, default=False)   # e-mail notification delivered
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now, index=True)
+    # set when the inquiry is converted to (or attached to) a client; deleting the client clears it
+    client_id = db.Column(db.Integer, db.ForeignKey("clients.id", ondelete="SET NULL"), index=True)
+
+    client = db.relationship("Client", backref=db.backref("inquiries", order_by="Inquiry.created_at.desc()"))
 
     @property
     def status_label(self) -> str:

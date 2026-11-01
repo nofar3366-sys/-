@@ -1,21 +1,75 @@
 {% extends "admin/base_admin.html" %}
 {% from "admin/_macros.html" import delete_button %}
+{% from "admin/_crm.html" import note_form, note_row %}
 {% block title %}פנייה מ{{ inquiry.name }}{% endblock %}
 {% block content %}
 <a href="{{ url_for('admin.inquiries') }}" class="back">→ חזרה לפניות</a>
 <header class="page-head">
-  <h1>{{ inquiry.name }} <span class="badge badge-{{ inquiry.status }}">{{ inquiry.status_label }}</span></h1>
-  <a href="mailto:{{ inquiry.email }}?subject={{ 'NOFAI Studio' | urlencode }}" class="btn btn-primary">מענה במייל</a>
+  <h1>{{ inquiry.name }} <span class="badge badge-{{ inquiry.status }}">{{ inquiry.status_label }}</span>
+    {% if inquiry.client %}<a href="{{ url_for('admin.client_detail', client_id=inquiry.client.id) }}" class="badge badge-client">לקוח: {{ inquiry.client.display_name }}</a>{% endif %}
+  </h1>
+  <div class="row-actions">
+    {% if inquiry.phone %}<a href="tel:{{ inquiry.phone }}" class="btn btn-primary">חיוג</a>{% endif %}
+    {% if inquiry.email %}<a href="mailto:{{ inquiry.email }}?subject={{ 'NOFAI Studio' | urlencode }}" class="btn">מענה במייל</a>{% endif %}
+    <details class="menu">
+      <summary class="btn">פעולות ▾</summary>
+      <div class="menu-list">
+        {% if inquiry.client %}
+          <a href="{{ url_for('admin.client_detail', client_id=inquiry.client.id) }}">לכרטיס הלקוח</a>
+        {% else %}
+          <a href="{{ url_for('admin.inquiry_convert', inquiry_id=inquiry.id) }}"><strong>המרה ללקוח</strong></a>
+        {% endif %}
+        <a href="{{ url_for('admin.pricing_new', inquiry=inquiry.id) }}">הצעת מחיר חדשה</a>
+        {% if inquiry.status != 'archived' %}
+          <form method="post" action="{{ url_for('admin.inquiry_status', inquiry_id=inquiry.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="status" value="archived">
+            <input type="hidden" name="next" value="{{ url_for('admin.inquiries') }}">
+            <button type="submit">העברה לארכיון</button>
+          </form>
+        {% endif %}
+        <form method="post" action="{{ url_for('admin.inquiry_delete', inquiry_id=inquiry.id) }}" data-confirm="{{ 'למחוק את הפנייה של ' ~ inquiry.name ~ '?' }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="danger">מחיקת הפנייה</button>
+        </form>
+      </div>
+    </details>
+  </div>
 </header>
 
 <div class="split">
-  <section class="card">
-    <h2>ההודעה</h2>
-    <p class="message">{{ inquiry.message }}</p>
-  </section>
+  <div>
+    <section class="card">
+      <h2>ההודעה</h2>
+      <p class="message">{{ inquiry.message }}</p>
+      {% if inquiry.quotes %}
+        <h2 class="pc-gap-top">הצעות מחיר</h2>
+        <ul class="rows">
+          {% for q in inquiry.quotes %}
+            <li class="list-row"><a href="{{ url_for('admin.pricing_edit', quote_id=q.id) }}" class="strong">{{ q.title }}</a>
+              <span class="num">{{ '{:,}'.format(q.total) }} ₪</span> <span class="badge badge-q-{{ q.status }}">{{ q.status_label }}</span></li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </section>
+
+    <section class="card" id="notes">
+      <div class="card-head"><h2>הערות</h2>{% if inquiry.client %}<span class="muted small">נשמרות גם בכרטיס הלקוח</span>{% else %}<span class="muted small">יעברו לכרטיס הלקוח בהמרה</span>{% endif %}</div>
+      {{ note_form(url_for('admin.inquiry_note_add', inquiry_id=inquiry.id)) }}
+      {% if inquiry.notes %}
+        <div class="notes">
+          {% for note in inquiry.notes %}{{ note_row(note, url_for('admin.inquiry_detail', inquiry_id=inquiry.id) ~ '#notes') }}{% endfor %}
+        </div>
+      {% else %}
+        <p class="muted small">עוד אין הערות.</p>
+      {% endif %}
+    </section>
+  </div>
+
   <aside class="card">
     <dl class="meta">
-      <dt>אימייל</dt><dd dir="ltr"><a href="mailto:{{ inquiry.email }}">{{ inquiry.email }}</a></dd>
+      <dt>טלפון</dt><dd dir="ltr">{% if inquiry.phone %}<a href="tel:{{ inquiry.phone }}">{{ inquiry.phone }}</a>{% else %}—{% endif %}</dd>
+      <dt>אימייל</dt><dd dir="ltr">{% if inquiry.email %}<a href="mailto:{{ inquiry.email }}">{{ inquiry.email }}</a>{% else %}—{% endif %}</dd>
       <dt>מותג</dt><dd>{{ inquiry.company or '—' }}</dd>
       <dt>שירות</dt><dd>{{ inquiry.service or '—' }}</dd>
       <dt>שפה</dt><dd>{{ 'עברית' if inquiry.language == 'he' else 'אנגלית' }}</dd>
@@ -30,7 +84,9 @@
       </select>
       <button type="submit" class="btn">עדכון סטטוס</button>
     </form>
-    <div class="danger-zone">{{ delete_button('admin.inquiry_delete', 'inquiry_id', inquiry.id, 'למחוק את הפנייה של ' ~ inquiry.name ~ '?', 'מחיקת הפנייה') }}</div>
+    {% if not inquiry.client %}
+      <div class="danger-zone"><a href="{{ url_for('admin.inquiry_convert', inquiry_id=inquiry.id) }}" class="btn btn-primary btn-block">המרה ללקוח</a></div>
+    {% endif %}
   </aside>
 </div>
 {% endblock %}

@@ -1,0 +1,45 @@
+{# Shared pieces of the client / inquiry pages: the note form and one note (with edit + delete) #}
+
+{% macro note_kind_options(selected='note') %}
+  {% for value, label in [('note', 'הערה'), ('call', 'שיחה'), ('email', 'מייל'), ('meeting', 'פגישה')] %}
+    <option value="{{ value }}" {% if value == selected %}selected{% endif %}>{{ label }}</option>
+  {% endfor %}
+{% endmacro %}
+
+{% macro note_form(action) %}
+  <form method="post" action="{{ action }}" class="note-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <select name="kind" aria-label="סוג ההערה">{{ note_kind_options() }}</select>
+    <textarea name="body" rows="3" maxlength="5000" required aria-label="הערה" placeholder="מה נאמר, מה סוכם, מה צריך לזכור..."></textarea>
+    <button type="submit" class="btn btn-sm">הוספת הערה</button>
+  </form>
+{% endmacro %}
+
+{% macro note_row(note, back) %}
+  <article class="note {{ 'is-system' if note.is_system }}">
+    <header class="note-head">
+      <span class="badge badge-note">{{ note.kind_label }}</span>
+      <time class="muted small" datetime="{{ note.created_at.isoformat() }}">{{ note.created_at.strftime('%d/%m/%Y %H:%M') }}</time>
+      {% if not note.is_system %}
+        <span class="note-tools">
+          <details class="note-edit">
+            <summary class="btn-text">עריכה</summary>
+            <form method="post" action="{{ url_for('admin.note_edit', note_id=note.id) }}" class="stack">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="next" value="{{ back }}">
+              <select name="kind" aria-label="סוג ההערה">{{ note_kind_options(note.kind) }}</select>
+              <textarea name="body" rows="3" maxlength="5000" required aria-label="הערה">{{ note.body }}</textarea>
+              <button type="submit" class="btn btn-sm">שמירה</button>
+            </form>
+          </details>
+          <form method="post" action="{{ url_for('admin.note_delete', note_id=note.id) }}" data-confirm="למחוק את ההערה?">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="next" value="{{ back }}">
+            <button type="submit" class="btn-text danger">מחיקה</button>
+          </form>
+        </span>
+      {% endif %}
+    </header>
+    <p class="message">{{ note.body }}</p>
+  </article>
+{% endmacro %}
